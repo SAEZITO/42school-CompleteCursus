@@ -1,22 +1,23 @@
-# Build a Docker image based on Alpine Linux version 3.18
-FROM alpine:3.18
+FROM debian:buster
 
-# set up the MariaDB Docker container
-ARG MYSQL_DATABASE MYSQL_ROOT_PASSWORD MYSQL_USER MYSQL_PASSWORD
-
-# Update and upgrade install 'mariadb' and 'mariadb-client' packages without caching
-RUN apk update && apk upgrade && apk add --no-cache mariadb mariadb-client
-
-# incoming client connections on port 3306
 EXPOSE 3306
 
-# Copy 'mariadb.sh' to MariaDB Docker container's directory.
-COPY conf/mariadb.sh .
+ARG SQL_DATABASE=${SQL_DATABASE}
+ARG SQL_USER=${SQL_USER}
+ARG SQL_PASSWORD=${SQL_PASSWORD}
+ARG SQL_ROOT_PASSWORD=${SQL_ROOT_PASSWORD}
 
-RUN sh mariadb.sh && rm mariadb.sh
+RUN apt-get update && apt-get install mariadb-server -y
 
-# Set Dockerfile user to 'mysql' for security, limiting access.
-USER mysql
+RUN rm /etc/mysql/mariadb.conf.d/50-server.cnf
+COPY ./conf/50-server.cnf /etc/mysql/mariadb.conf.d/50-server.cnf
+COPY ./conf/config.sh /
+RUN chmod 755 /config.sh && chmod 755 /etc/mysql/mariadb.conf.d/50-server.cnf
 
-# Set MariaDB container to start 'mysqld' by default.
-CMD ["mysqld"]
+CMD ["./config.sh"]
+
+# sudo docker exec -it mariadb /bin/bash
+# mysql
+# SHOW DATABASES;
+# USE wordpress;
+# SHOW TABLES

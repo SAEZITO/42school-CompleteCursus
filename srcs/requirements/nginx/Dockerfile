@@ -1,12 +1,22 @@
-FROM alpine:3.18
+FROM debian:buster
 
-RUN apk update && apk upgrade && apk add --no-cache nginx && apk add --no-cache openssl
+EXPOSE	443
 
-# https://www.baeldung.com/openssl-self-signed-cert
-RUN openssl req -x509 -sha256 -nodes -days 365 -newkey rsa:2048 -keyout /etc/ssl/private/abeaugra.42.fr.key -out /etc/ssl/certs/abeaugra.42.fr.crt -subj "/C=FR"
+RUN apt update
+RUN apt install nginx -y
+RUN apt install vim -y
+RUN mkdir -p /etc/nginx/ssl
 
-# Accept incoming connections on port 443 used for HTTPS traffic when Nginx service is open
-EXPOSE 443
+RUN apt install openssl -y
+RUN openssl req -x509 -days 365 -nodes -newkey rsa:4096 \
+	-keyout /etc/nginx/ssl/inception.key \
+	-out /etc/nginx/ssl/inception.crt -sha256 -subj "/CN=alsaez.42.fr"
 
-# Start NGINX in container with '-g', 'daemon off' option
-CMD ["nginx", "-g", "daemon off;"]
+RUN mkdir -p /var/run/nginx
+
+COPY ./conf/nginx.conf /etc/nginx/sites-available/default
+
+RUN chmod 755 /var/www/html
+RUN chown -R www-data:www-data /var/www/html
+
+CMD [ "nginx", "-g", "daemon off;" ]
